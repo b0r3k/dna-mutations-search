@@ -43,7 +43,8 @@ def agregate_gene_mutations(vcf_file, sample_id, gene_coordinates, samp_mut_inde
             for rec in vcf.fetch(chromosome, start, end):
                 mut_position = f"{chromosome}:{rec.pos}"
                 mut_samp_index[mut_position].add(sample_id)
-                samp_mut_index[sample_id].append({"gene": gene_id,
+                samp_mut_index[sample_id].append({"sample_id": sample_id,
+                                                    "gene": gene_id,
                                                     "position": f"{chromosome}:{rec.pos}",
                                                     "ref": rec.ref,
                                                     "alt": rec.alts,
@@ -63,10 +64,10 @@ def asses_mutations(samp_mut_index, mut_samp_index):
 
 def write_mutations(samp_mut_index, out_file):
     with open(out_file, "w+") as f:
-        for sample_id, mut_infos in samp_mut_index.items():
-            for mut_info in sorted(mut_infos, key=lambda x: x["mut_count"]):
+        for sample_id, mut_infos in sorted(samp_mut_index.items(), key=lambda x: x[0]):
+            for mut_info in sorted(mut_infos, key=lambda x: (x["sample_id"], x["mut_count"])):
                 chromosome, position = mut_info["position"].split(":")
-                f.write(f"{sample_id},{mut_info['gene']},{chromosome},{position},{mut_info['ref']},{mut_info['alt']},{mut_info['var_freqs']},{mut_info['mut_count']},{mut_info['mut_freq']}\n")
+                f.write(f"{mut_info['sample_id']},{mut_info['gene']},{chromosome},{position},{mut_info['ref']},{mut_info['alt']},{mut_info['var_freqs']},{mut_info['mut_count']},{mut_info['mut_freq']}\n")
 
 if __name__ == "__main__":
     try:
