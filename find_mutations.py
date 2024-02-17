@@ -38,9 +38,25 @@ def agregate_gene_mutations(vcf_file, sample_id, gene_coordinates, samp_mut_inde
         for gene_id, pos in gene_coordinates.items():
             chromosome, start, end = pos
             for rec in vcf.fetch(chromosome, start, end):
-                mut_samp_index[rec.pos].append({sample_id: [rec.alleles, [round(var_rec["VF"], 3) for var_rec in rec.samples.values()]]})
-                samp_mut_index[sample_id].append({rec.pos: [rec.alleles, [round(var_rec["VF"], 3) for var_rec in rec.samples.values()]]})
+                mut_position = f"{chromosome}:{rec.pos}"
+                mut_samp_index[mut_position].add(sample_id)
+                samp_mut_index[sample_id].append({"gene": gene_id,
+                                                    "position": f"{chromosome}:{rec.pos}",
+                                                    "ref": rec.ref,
+                                                    "alt": rec.alts,
+                                                    "var_freqs": [round(var_rec["VF"], 3) for var_rec in rec.samples.values()]})
     return samp_mut_index, mut_samp_index
+
+def asses_mutations(samp_mut_index, mut_samp_index):
+    num_samples = len(samp_mut_index)
+    mut_counts = {mut_position: len(mut_samp_index[mut_position]) for mut_position in mut_samp_index}
+    for samp_mut_infos in samp_mut_index.values():
+        for samp_mut_info in samp_mut_infos:
+            mut_position = samp_mut_info["position"]
+            if mut_position in mut_counts:
+                samp_mut_info["mut_count"] = mut_counts[mut_position]
+                samp_mut_info["mut_freq"] = round(mut_counts[mut_position]/num_samples, 3)
+    return samp_mut_index
 
 if __name__ == "__main__":
     try:
@@ -67,7 +83,7 @@ if __name__ == "__main__":
             file_path = os.path.join(vcf_folder_path, file)
             tabix_index(file_path, preset="vcf", force=True)
 
-    sample_mutation_index, mutation_sample_index = defaultdict(list), defaultdict(list)
+    sample_mutation_index, mutation_sample_index = defaultdict(list), defaultdict(set)
     for file in os.listdir(vcf_folder_path):
         if not file.endswith(".vcf.gz"):
             continue
@@ -85,6 +101,9 @@ if __name__ == "__main__":
         
     print(sample_mutation_index)
     print(mutation_sample_index)
+    
+    sample_mutation_index = asses_mutations(sample_mutation_index, mutation_sample_index)
+    print(sample_mutation_index)
 
     # res = pd.Series(number_of_measurings).sort_index()
     # out_name = f"{str(date.today())}-{chromosome}-{position}-counts.csv"
