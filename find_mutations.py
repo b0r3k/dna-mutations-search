@@ -5,6 +5,7 @@ import sys
 import os
 from collections import defaultdict
 from datetime import date
+import shutil
 
 def read_gene_coordinates(gene_file):
     gene_coordinates = dict()
@@ -89,7 +90,12 @@ if __name__ == "__main__":
                 continue
             print(f"Indexing {file}")
             file_path = os.path.join(vcf_folder_path, file)
+            # Make a copy of original file, tabix_index would destroy it
+            tmp_file_path = os.path.join(vcf_folder_path, file+".tmp")
+            shutil.copy(file_path, tmp_file_path)
             tabix_index(file_path, preset="vcf", force=True)
+            # Rename the original file back
+            os.rename(tmp_file_path, file_path)
 
     sample_mutation_index, mutation_sample_index = defaultdict(list), defaultdict(set)
     for file in os.listdir(vcf_folder_path):
