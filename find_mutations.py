@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-from pysam import VariantFile, tabix_index, VariantRecord
+from pysam import VariantFile, tabix_index
 
 import sys
 import os
 from collections import defaultdict
+from datetime import date
 
 def read_gene_coordinates(gene_file):
     gene_coordinates = dict()
@@ -58,6 +59,13 @@ def asses_mutations(samp_mut_index, mut_samp_index):
                 samp_mut_info["mut_freq"] = round(mut_counts[mut_position]/num_samples, 3)
     return samp_mut_index
 
+def write_mutations(samp_mut_index, out_file):
+    with open(out_file, "w+") as f:
+        for sample_id, mut_infos in samp_mut_index.items():
+            for mut_info in sorted(mut_infos, key=lambda x: x["mut_count"]):
+                chromosome, position = mut_info["position"].split(":")
+                f.write(f"{sample_id},{mut_info['gene']},{chromosome},{position},{mut_info['ref']},{mut_info['alt']},{mut_info['var_freqs']},{mut_info['mut_count']},{mut_info['mut_freq']}\n")
+
 if __name__ == "__main__":
     try:
         vcf_folder = sys.argv[1]
@@ -105,10 +113,9 @@ if __name__ == "__main__":
     sample_mutation_index = asses_mutations(sample_mutation_index, mutation_sample_index)
     print(sample_mutation_index)
 
-    # res = pd.Series(number_of_measurings).sort_index()
-    # out_name = f"{str(date.today())}-{chromosome}-{position}-counts.csv"
-    # res.to_csv(out_name, header=False)
-    # print(f"Output written to {out_name}")
+    out_name = f"{str(date.today())}-{os.path.basename(vcf_folder)}-{os.path.basename(gene_list_file)}-mutations.csv"
+    write_mutations(sample_mutation_index, out_name)
+    print(f"Output written to {out_name}")
     
     # vcf_file = "1_S1.vcf"
     # chromosome = "chr14"
