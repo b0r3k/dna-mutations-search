@@ -16,6 +16,7 @@ def read_gene_coordinates(gene_file):
             line = line.strip().split(",")
             if len(line) < 4:
                 print(f"Invalid line: {line}. Skipping...")
+                continue
             gene_id = line[0]
             chromosome = line[1]
             start = int(line[2])
