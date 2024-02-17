@@ -81,7 +81,7 @@ if __name__ == "__main__":
         print("Example: python3 find_mutations.py /path/to/vcf/files/folder /path/to/gene_list_file.csv 0")
         print("Make sure you are providing correct arguments and try again.")
         exit()
-    
+
     gene_list_file_path = os.path.normpath(os.path.join(os.getcwd(), gene_list_file))
     vcf_folder_path = os.path.normpath(os.path.join(os.getcwd(), vcf_folder))
 
@@ -115,22 +115,9 @@ if __name__ == "__main__":
             print(f"Duplicate sample_id found: {sample_id}. Skipping...")
             continue
         sample_mutation_index, mutation_sample_index = agregate_gene_mutations(file_path, sample_id, gene_coordinates, sample_mutation_index, mutation_sample_index)
-        
-    print(sample_mutation_index)
-    print(mutation_sample_index)
-    
+
     sample_mutation_index = asses_mutations(sample_mutation_index, mutation_sample_index)
-    print(sample_mutation_index)
 
     out_name = f"{str(date.today())}-{os.path.basename(vcf_folder)}-{os.path.basename(gene_list_file)}-mutations.csv"
     write_mutations(sample_mutation_index, out_name)
     print(f"Output written to {out_name}")
-    
-    # vcf_file = "1_S1.vcf"
-    # chromosome = "chr14"
-    # pos = (81609282,81610974)
-    # pos = (pos[0]-1, pos[1])
-
-
-
-
