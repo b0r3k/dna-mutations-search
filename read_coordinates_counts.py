@@ -48,7 +48,7 @@ if __name__ == "__main__":
                 print(f"Can't process {file}, infered sample_id is not an integer. Skipping...")
                 continue
             n = get_read_count(file_path, chromosome, position)
-            if sample_id in number_of_measurings:
+            if sample_id in number_of_measurings and number_of_measurings[sample_id] != -1:
                 print(f"Duplicate sample_id found: {sample_id}. Skipping...")
                 continue
             number_of_measurings[sample_id] = n    
