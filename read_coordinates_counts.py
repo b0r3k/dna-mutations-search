@@ -12,6 +12,7 @@ def get_read_count(bam_file, chromosome, position):
             return bam.count(chromosome, position-1, position)
     except:
         print(f"Error while processing {bam_file}, either it can't be opened or `.bai` index file is missing.")
+        return -1
 
 def get_base_counts(bam_file, chromosome, position):
     with pysam.AlignmentFile(bam_file, "rb", index_filename=bam_file+".bai") as bam:
@@ -41,10 +42,14 @@ if __name__ == "__main__":
         if file.endswith(".bam"):
             print(f"Processing {file}")
             file_path = os.path.join(bam_folder_path, file)
-            sample_id = file.split("_")[0]
+            try:
+                sample_id = int(file.split("_")[0])
+            except:
+                print(f"Can't process {file}, infered sample_id is not an integer. Skipping...")
+                continue
             n = get_read_count(file_path, chromosome, position)
             number_of_measurings[sample_id] = n    
-    res = pd.Series(number_of_measurings)
+    res = pd.Series(number_of_measurings).sort_index()
     out_name = f"{str(date.today())}-{chromosome}-{position}-counts.csv"
     res.to_csv(out_name, header=False)
     print(f"Output written to {out_name}")
