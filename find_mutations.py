@@ -64,6 +64,7 @@ def asses_mutations(samp_mut_index, mut_samp_index):
 
 def write_mutations(samp_mut_index, out_file):
     with open(out_file, "w+") as f:
+        f.write("sample_id,gene,chromosome,position,reference,alternatives,variant_frequencies,mutation_count,mutation_freqency\n")
         for sample_id, mut_infos in sorted(samp_mut_index.items(), key=lambda x: x[0]):
             for mut_info in sorted(mut_infos, key=lambda x: (x["sample_id"], x["mut_count"])):
                 chromosome, position = mut_info["position"].split(":")
