@@ -7,6 +7,8 @@ from collections import defaultdict
 from datetime import date
 import shutil
 
+from read_coordinates_counts import get_read_count
+
 def read_gene_coordinates(gene_file):
     gene_coordinates = dict()
     with open(gene_file, "r") as f:
@@ -41,6 +43,8 @@ def agregate_gene_mutations(vcf_file, sample_id, gene_coordinates, samp_mut_inde
         for gene_id, pos in gene_coordinates.items():
             chromosome, start, end = pos
             for rec in vcf.fetch(chromosome, start, end):
+                # Get read counts for the position
+                read_count = get_read_count(vcf_file[:-7]+".bam", chromosome, rec.pos)
                 mut_position = f"{chromosome}:{rec.pos}"
                 mut_samp_index[mut_position].add(sample_id)
                 samp_mut_index[sample_id].append({"sample_id": sample_id,
@@ -48,7 +52,8 @@ def agregate_gene_mutations(vcf_file, sample_id, gene_coordinates, samp_mut_inde
                                                     "position": f"{chromosome}:{rec.pos}",
                                                     "ref": rec.ref,
                                                     "alt": rec.alts,
-                                                    "var_freqs": [round(var_rec["VF"], 3) for var_rec in rec.samples.values()]})
+                                                    "var_freqs": [round(var_rec["VF"], 3) for var_rec in rec.samples.values()],
+                                                    "read_count": read_count})
     return samp_mut_index, mut_samp_index
 
 def asses_mutations(samp_mut_index, mut_samp_index):
@@ -64,11 +69,11 @@ def asses_mutations(samp_mut_index, mut_samp_index):
 
 def write_mutations(samp_mut_index, out_file):
     with open(out_file, "w+") as f:
-        f.write("sample_id;gene;chromosome;position;reference;alternatives;variant_frequencies;mutation_count;mutation_freqency\n")
+        f.write("sample_id;gene;chromosome;position;reference;alternatives;variant_frequencies;read_count;mutation_freqency;mutation_count\n")
         for sample_id, mut_infos in sorted(samp_mut_index.items(), key=lambda x: x[0]):
             for mut_info in sorted(mut_infos, key=lambda x: (x["sample_id"], x["mut_count"])):
                 chromosome, position = mut_info["position"].split(":")
-                f.write(f"{mut_info['sample_id']};{mut_info['gene']};{chromosome};{position};{mut_info['ref']};{mut_info['alt']};{mut_info['var_freqs']};{mut_info['mut_count']};{mut_info['mut_freq']}\n")
+                f.write(f"{mut_info['sample_id']};{mut_info['gene']};{chromosome};{position};{mut_info['ref']};{mut_info['alt']};{mut_info['var_freqs']};{mut_info['read_count']};{mut_info['mut_freq']};{mut_info['mut_count']}\n")
 
 if __name__ == "__main__":
     try:
