@@ -7,8 +7,11 @@ import os
 from datetime import date
 
 def get_read_count(bam_file, chromosome, position):
-    with pysam.AlignmentFile(bam_file, "rb", index_filename=bam_file+".bai") as bam:
-        return bam.count(chromosome, position-1, position)
+    try:
+        with pysam.AlignmentFile(bam_file, "rb", index_filename=bam_file+".bai") as bam:
+            return bam.count(chromosome, position-1, position)
+    except:
+        print(f"Error while processing {bam_file}, either it can't be opened or `.bai` index file is missing.")
 
 def get_base_counts(bam_file, chromosome, position):
     with pysam.AlignmentFile(bam_file, "rb", index_filename=bam_file+".bai") as bam:
