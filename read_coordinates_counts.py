@@ -54,7 +54,7 @@ if __name__ == "__main__":
             number_of_measurings[sample_id] = n    
     res = pd.Series(number_of_measurings).sort_index()
     out_name = f"{str(date.today())}-{chromosome}-{position}-counts.csv"
-    res.to_csv(out_name, header=False)
+    res.to_csv(out_name, header=False, sep=";")
     print(f"Output written to {out_name}")
     
     # bam_file = "1_S1.bam"
