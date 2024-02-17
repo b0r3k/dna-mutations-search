@@ -36,8 +36,10 @@ if __name__ == "__main__":
     number_of_measurings = dict()
     for file in os.listdir(bam_folder_path):
         if file.endswith(".bam"):
+            print(f"Processing {file}")
+            file_path = os.path.join(bam_folder_path, file)
             sample_id = file.split("_")[0]
-            n = get_read_count(os.path.join(bam_folder_path, file), chromosome, position)
+            n = get_read_count(file_path, chromosome, position)
             number_of_measurings[sample_id] = n    
     res = pd.Series(number_of_measurings)
     out_name = f"{str(date.today())}-{chromosome}-{position}-counts.csv"
