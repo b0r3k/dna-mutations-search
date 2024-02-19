@@ -6,10 +6,18 @@ import os
 from collections import defaultdict
 from datetime import date
 import shutil
+from typing import Tuple, Any
 
 from read_coordinates_counts import get_read_count
 
-def read_gene_coordinates(gene_file):
+def read_gene_coordinates(gene_file: str):
+    """
+    Reads gene coordinates from a file and returns a dictionary with gene_id as key and (chromosome, start, end) as value. Expects `.csv` file with the following structure:
+    `gene_id,chromosome,start,end`
+    
+    :param gene_file: str, path to the gene file
+    :return: dict[str, (str, int, int)]
+    """
     gene_coordinates = dict()
     with open(gene_file, "r") as f:
         for line in f:
@@ -26,7 +34,18 @@ def read_gene_coordinates(gene_file):
             gene_coordinates[gene_id] = (chromosome, start, end)
     return gene_coordinates
 
-def agregate_gene_mutations(vcf_file, sample_id, gene_coordinates, samp_mut_index, mut_samp_index):
+def agregate_gene_mutations(vcf_file: str, sample_id: int, gene_coordinates: dict[str, Tuple[str, int, int]], samp_mut_index: dict[int, list[dict]], mut_samp_index: dict[str, set]):
+    """
+    Aggregates gene mutations in given regions of given sample into to the samp_mut_index and mut_samp_index specified.
+    
+    :param vcf_file: str, path to the vcf file for given sample
+    :param sample_id: int, sample id
+    :param gene_coordinates: dict[str, Tuple[str, int, int]], gene_id as key and (chromosome, start, end) as value
+    :param samp_mut_index: dict[int, list[dict]], sample_id as key and list of mutations as value
+    :param mut_samp_index: dict[str, set], mutation position (string `chromosome:position`) as key and set of sample_ids as value
+    
+    :return: dict[int, list[dict]], dict[str, set], updated samp_mut_index and mut_samp_index
+    """
     # rec.samples: dict[str, pysam.libcbcf.VariantRecordSample]
     # VariantRecordSample: dict[str, Any]
         # for example [('GT', (0, 1)), ('GQ', 100), ('AD', (14671, 462)), ('VF', 0.030500000342726707), ('NL', 20), ('SB', -100.0), ('GQX', 100)]
@@ -57,6 +76,14 @@ def agregate_gene_mutations(vcf_file, sample_id, gene_coordinates, samp_mut_inde
     return samp_mut_index, mut_samp_index
 
 def asses_mutations(samp_mut_index, mut_samp_index):
+    """
+    For each mutation in samp_mut_index, adds mutation count (how many samples had it) and frequency (what ration of sample had it) to the dict.
+    
+    :param samp_mut_index: dict[int, list[dict]], sample_id as key and list of mutations as value
+    :param mut_samp_index: dict[str, set], mutation position (string `chromosome:position`) as key and set of sample_ids with that mutation as value
+    
+    :return: dict[int, list[dict]], updated samp_mut_index
+    """
     num_samples = len(samp_mut_index)
     mut_counts = {mut_position: len(mut_samp_index[mut_position]) for mut_position in mut_samp_index}
     for samp_mut_infos in samp_mut_index.values():
@@ -68,10 +95,17 @@ def asses_mutations(samp_mut_index, mut_samp_index):
     return samp_mut_index
 
 def write_mutations(samp_mut_index, out_file):
+    """
+    Writes the samp_mut_index to a file in the following format:
+    sample_id;gene;chromosome;position;reference;alternatives;variant_frequencies;read_count;mutation_freqency;mutation_count
+    
+    :param samp_mut_index: dict[int, list[dict]], sample_id as key and list of mutations as value
+    :param out_file: str, path to the output file
+    """
     with open(out_file, "w+") as f:
         f.write("sample_id;gene;chromosome;position;reference;alternatives;variant_frequencies;read_count;mutation_freqency;mutation_count\n")
-        for sample_id, mut_infos in sorted(samp_mut_index.items(), key=lambda x: x[0]):
-            for mut_info in sorted(mut_infos, key=lambda x: (x["sample_id"], x["mut_count"])):
+        for _, mut_infos in sorted(samp_mut_index.items(), key=lambda x: x[0]): # sort by sample_id (lower first)
+            for mut_info in sorted(mut_infos, key=lambda x: x["mut_count"]): # sort by mut_count (less frequent first)
                 chromosome, position = mut_info["position"].split(":")
                 f.write(f"{mut_info['sample_id']};{mut_info['gene']};{chromosome};{position};{mut_info['ref']};{mut_info['alt']};{mut_info['var_freqs']};{mut_info['read_count']};{mut_info['mut_freq']};{mut_info['mut_count']}\n")
 

@@ -7,6 +7,15 @@ import os
 from datetime import date
 
 def get_read_count(bam_file, chromosome, position):
+    """
+    Get read count at given position in given bam file.
+    
+    :param bam_file: str, path to the bam file
+    :param chromosome: str, chromosome name
+    :param position: int, position in the chromosome
+
+    :return: int, number of reads at the position, -1 if error
+    """
     try:
         with pysam.AlignmentFile(bam_file, "rb", index_filename=bam_file+".bai") as bam:
             return bam.count(chromosome, position-1, position)
@@ -14,14 +23,26 @@ def get_read_count(bam_file, chromosome, position):
         print(f"Error while processing {bam_file}, either it can't be opened or `.bai` index file is missing.")
         return -1
 
-def get_base_counts(bam_file, chromosome, position):
+def get_base_counts(bam_file, chromosome, position, min_base_quality=13):
+    """
+    Efficiently get base counts at given position in given bam file. Beware of the `min_base_quality` parameter, it can significantly affect the results! Position is expected 1-based as the graphical editors use it.
+    
+    :param bam_file: str, path to the bam file
+    :param chromosome: str, chromosome name
+    :param position: int, position in the chromosome
+    :param min_base_quality: int, minimum base quality to consider the read into results, default is 13
+    
+    :return: dict[str, int], base as key and count as value
+    """
     with pysam.AlignmentFile(bam_file, "rb", index_filename=bam_file+".bai") as bam:
-        for column in bam.pileup(chromosome, position-1, position, truncate=True, stepper="nofilter", min_base_quality=0.99):
-            counts = {base : 0 for base in "ATCGN"}
+        # Use position-1 to get 0-based position
+        for column in bam.pileup(chromosome, position-1, position, truncate=True, stepper="nofilter", min_base_quality=min_base_quality):
+            counts = {base : 0 for base in "ATCGND"}
             for read in column.pileups:
-                if (not read.is_del):
-                    base = read.alignment.seq[read.query_position]
-                    counts[base] += 1
+                if read.is_del:
+                    counts["D"] += 1
+                base = read.alignment.seq[read.query_position]
+                counts[base] += 1
     return counts
 
 if __name__ == "__main__":
@@ -37,22 +58,24 @@ if __name__ == "__main__":
         exit()
     
     bam_folder_path = os.path.normpath(os.path.join(os.getcwd(), bam_folder))
-    number_of_measurings = dict()
+    number_of_measurments = dict()
+
     for file in os.listdir(bam_folder_path):
-        if file.endswith(".bam"):
-            print(f"Processing {file}")
-            file_path = os.path.join(bam_folder_path, file)
-            try:
-                sample_id = int(file.split("_")[0])
-            except:
-                print(f"Can't process {file}, infered sample_id is not an integer. Skipping...")
-                continue
-            n = get_read_count(file_path, chromosome, position)
-            if sample_id in number_of_measurings and number_of_measurings[sample_id] != -1:
-                print(f"Duplicate sample_id found: {sample_id}. Skipping...")
-                continue
-            number_of_measurings[sample_id] = n    
-    res = pd.Series(number_of_measurings).sort_index()
+        if not file.endswith(".bam"):
+            continue
+        print(f"Processing {file}")
+        file_path = os.path.join(bam_folder_path, file)
+        try:
+            sample_id = int(file.split("_")[0])
+        except:
+            print(f"Can't process {file}, infered sample_id is not an integer. Skipping...")
+            continue
+        n = get_read_count(file_path, chromosome, position)
+        if sample_id in number_of_measurments and number_of_measurments[sample_id] != -1:
+            print(f"Duplicate sample_id found: {sample_id}. Skipping...")
+            continue
+        number_of_measurments[sample_id] = n    
+    res = pd.Series(number_of_measurments).sort_index()
     out_name = f"{str(date.today())}-{chromosome}-{position}-counts.csv"
     res.to_csv(out_name, header=False, sep=";")
     print(f"Output written to {out_name}")
