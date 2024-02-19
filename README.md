@@ -1,7 +1,7 @@
 # dna-mutations-search
 
 ## Intro
-I have created this repo when I found out that my friend did a tedious job of looking through files and writing some numbers out of them into a table, when it could be easily automated. 
+I have created this repo when I found out that my friend did a tedious job of looking through files and writing some numbers out of them into a table, when it could be easily automated. **Be sure to reach out (for example in Issues) if you have any problem or request! I will happily keep working on this repo.**
 
 If you work with results of DNA sequencing in `.bam`, `.bam.bai` and `.vcf` files, you could find it useful. Currently it contains two scripts. Also, I found `pysam` documentation quite incomplete in parts, so if you struggle with it as well, you might find inspiration in my code.
 
